@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Project 2 – FutureBody v1</title>
+<style>
+body{
+  font-family:'Poppins',sans-serif;
+  background:radial-gradient(circle at center,#0a001f 0%,#000 100%);
+  color:#fff;margin:0;padding:20px;text-align:center;
+}
+h1{font-size:22px;margin-bottom:10px;color:#00eaff;text-shadow:0 0 10px #00eaff;}
+svg{width:220px;margin-top:10px;cursor:pointer;}
+path{stroke:#00eaff;stroke-width:1;fill:rgba(255,255,255,0.05);transition:.3s;}
+path:hover{fill:rgba(0,234,255,0.4);}
+#stats{margin-top:20px;font-size:16px;}
+.popup{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.7);
+  display:flex;justify-content:center;align-items:center;
+}
+.hidden{display:none;}
+.popup-content{
+  background:rgba(20,20,40,0.9);
+  border:1px solid #00eaff;
+  border-radius:16px;
+  padding:20px;max-width:300px;width:90%;
+  text-align:center;
+}
+input{width:80px;padding:6px;border-radius:8px;border:none;text-align:center;}
+button{
+  background:linear-gradient(90deg,#00eaff,#7928ca);
+  border:none;color:#fff;font-weight:600;
+  border-radius:20px;padding:6px 14px;margin-top:8px;cursor:pointer;
+}
+.progress-bar{width:200px;height:14px;background:#222;margin:8px auto;border-radius:7px;overflow:hidden;}
+.progress-fill{height:100%;background:#00eaff;width:0%;transition:width .5s;}
+</style>
+</head>
+<body>
+<h1>FutureBody v1 – Interactive Growth Tracker</h1>
+
+<!-- Avatar -->
+<svg id="bodyAvatar" viewBox="0 0 200 400">
+  <path id="chest" d="M70,80h60v40H70z"/>
+  <path id="biceps" d="M40,100h20v60H40zM140,100h20v60h-20z"/>
+  <path id="shoulders" d="M50,60h100v20H50z"/>
+  <path id="abs" d="M85,130h30v50H85z"/>
+  <path id="legs" d="M80,180h20v100H80zM100,180h20v100h-20z"/>
+  <path id="back" d="M70,100h60v40H70z"/>
+</svg>
+
+<div id="stats">Overall Growth: <span id="growthPercent">0</span>%</div>
+
+<!-- Popup -->
+<div id="musclePopup" class="popup hidden">
+  <div class="popup-content">
+    <h3 id="muscleName">Chest</h3>
+    <div>Reps today:</div>
+    <input type="number" id="repInput" min="0" value="0">
+    <button onclick="saveReps()">Save</button>
+    <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+    <div id="muscleGrowth">Growth: 0%</div>
+    <button onclick="closePopup()">Close</button>
+  </div>
+</div>
+
+<script>
+let bodyParts=JSON.parse(localStorage.getItem("bodyParts")||`{
+  "chest":{"reps":0,"growth":0},
+  "biceps":{"reps":0,"growth":0},
+  "shoulders":{"reps":0,"growth":0},
+  "abs":{"reps":0,"growth":0},
+  "legs":{"reps":0,"growth":0},
+  "back":{"reps":0,"growth":0}
+}`);
+
+let selected=null;
+
+// attach click events to all muscles
+document.querySelectorAll("path").forEach(p=>{
+  p.addEventListener("click",()=>openPopup(p.id));
+  updateColor(p.id);
+});
+
+function openPopup(m){
+  selected=m;
+  document.getElementById("musclePopup").classList.remove("hidden");
+  document.getElementById("muscleName").innerText=m.charAt(0).toUpperCase()+m.slice(1);
+  document.getElementById("repInput").value=0;
+  document.getElementById("progressFill").style.width=bodyParts[m].growth+"%";
+  document.getElementById("muscleGrowth").innerText="Growth: "+Math.round(bodyParts[m].growth)+"%";
+}
+function closePopup(){document.getElementById("musclePopup").classList.add("hidden");}
+
+function saveReps(){
+  const reps=parseInt(document.getElementById("repInput").value)||0;
+  bodyParts[selected].reps+=reps;
+  // growth formula: diminishing returns
+  const base=bodyParts[selected].reps;
+  const growth=100*(1-Math.exp(-base/500));
+  bodyParts[selected].growth=growth>100?100:growth;
+  document.getElementById("progressFill").style.width=growth+"%";
+  document.getElementById("muscleGrowth").innerText="Growth: "+Math.round(growth)+"%";
+  updateColor(selected);
+  saveData();
+  updateOverall();
+}
+
+function updateColor(m){
+  const g=bodyParts[m].growth;
+  let color="#222";
+  if(g<30)color="rgba(0,234,255,0.3)";
+  else if(g<70)color="rgba(123,0,255,0.5)";
+  else color="rgba(255,215,0,0.7)";
+  document.getElementById(m).style.fill=color;
+}
+function updateOverall(){
+  const vals=Object.values(bodyParts).map(v=>v.growth);
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+  document.getElementById("growthPercent").innerText=Math.round(avg);
+}
+function saveData(){
+  localStorage.setItem("bodyParts",JSON.stringify(bodyParts));
+}
+updateOverall();
+</script>
+</body>
+</html>
