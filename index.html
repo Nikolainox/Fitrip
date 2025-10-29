@@ -1,130 +1,199 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Project 2 – FutureBody v1</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RipFit – FutureBody 2.3 (Muscle History)</title>
 <style>
-body{
-  font-family:'Poppins',sans-serif;
-  background:radial-gradient(circle at center,#0a001f 0%,#000 100%);
-  color:#fff;margin:0;padding:20px;text-align:center;
-}
-h1{font-size:22px;margin-bottom:10px;color:#00eaff;text-shadow:0 0 10px #00eaff;}
-svg{width:220px;margin-top:10px;cursor:pointer;}
-path{stroke:#00eaff;stroke-width:1;fill:rgba(255,255,255,0.05);transition:.3s;}
-path:hover{fill:rgba(0,234,255,0.4);}
-#stats{margin-top:20px;font-size:16px;}
-.popup{
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  background:rgba(0,0,0,.7);
-  display:flex;justify-content:center;align-items:center;
-}
-.hidden{display:none;}
-.popup-content{
-  background:rgba(20,20,40,0.9);
-  border:1px solid #00eaff;
-  border-radius:16px;
-  padding:20px;max-width:300px;width:90%;
-  text-align:center;
-}
-input{width:80px;padding:6px;border-radius:8px;border:none;text-align:center;}
-button{
-  background:linear-gradient(90deg,#00eaff,#7928ca);
-  border:none;color:#fff;font-weight:600;
-  border-radius:20px;padding:6px 14px;margin-top:8px;cursor:pointer;
-}
-.progress-bar{width:200px;height:14px;background:#222;margin:8px auto;border-radius:7px;overflow:hidden;}
-.progress-fill{height:100%;background:#00eaff;width:0%;transition:width .5s;}
+body{margin:0;font-family:Poppins,Arial,sans-serif;background:#000;color:#fff;text-align:center}
+h1{color:#00eaff;text-shadow:0 0 10px #00eaff}
+.container{max-width:900px;margin:auto;padding:10px}
+#calendar{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin-top:10px}
+.day{background:#111;padding:10px;border-radius:8px;cursor:pointer;transition:.2s}
+.day:hover{transform:scale(1.05);background:#222}
+.day.finalized{background:#00eaff;color:#000;font-weight:700}
+.popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);
+display:flex;justify-content:center;align-items:center;z-index:10}
+.hidden{display:none}
+.popup-content{background:#111;border:1px solid #00eaff;border-radius:14px;padding:18px;width:90%;max-width:420px;text-align:left}
+button{background:linear-gradient(90deg,#ff0080,#7928ca);color:#fff;border:none;padding:8px 14px;border-radius:25px;font-weight:600;margin:4px;cursor:pointer}
+input[type=number]{width:60px;text-align:center}
+svg{width:200px;margin:15px auto;display:block}
+.mood span{font-size:24px;margin:0 5px;cursor:pointer;transition:.2s}
+.mood span:hover{transform:scale(1.3)}
+canvas{margin-top:25px}
+#statsSection{margin-top:30px}
+#historyPopup .popup-content{max-width:500px}
 </style>
 </head>
 <body>
-<h1>FutureBody v1 – Interactive Growth Tracker</h1>
+<div class="container">
+<h1>🏋️‍♂️ RipFit / FutureBody 2.3</h1>
+<div id="calendar"></div>
 
-<!-- Avatar -->
-<svg id="bodyAvatar" viewBox="0 0 200 400">
-  <path id="chest" d="M70,80h60v40H70z"/>
-  <path id="biceps" d="M40,100h20v60H40zM140,100h20v60h-20z"/>
-  <path id="shoulders" d="M50,60h100v20H50z"/>
-  <path id="abs" d="M85,130h30v50H85z"/>
-  <path id="legs" d="M80,180h20v100H80zM100,180h20v100h-20z"/>
-  <path id="back" d="M70,100h60v40H70z"/>
-</svg>
-
-<div id="stats">Overall Growth: <span id="growthPercent">0</span>%</div>
-
-<!-- Popup -->
-<div id="musclePopup" class="popup hidden">
-  <div class="popup-content">
-    <h3 id="muscleName">Chest</h3>
-    <div>Reps today:</div>
-    <input type="number" id="repInput" min="0" value="0">
-    <button onclick="saveReps()">Save</button>
-    <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
-    <div id="muscleGrowth">Growth: 0%</div>
-    <button onclick="closePopup()">Close</button>
-  </div>
+<!-- Day popup -->
+<div id="dayPopup" class="popup hidden">
+ <div class="popup-content">
+   <h2 id="dayTitle"></h2>
+   <svg id="avatar" viewBox="0 0 200 400">
+     <path id="chest" d="M80,80 Q100,60 120,80 Q100,100 80,80Z" fill="#333"/>
+     <path id="biceps" d="M60,120 Q70,140 60,160 Q50,140 60,120Z" fill="#333"/>
+     <path id="shoulders" d="M70,60 Q100,40 130,60 Q100,50 70,60Z" fill="#333"/>
+     <path id="abs" d="M90,120 Q100,160 110,120 Q100,100 90,120Z" fill="#333"/>
+     <path id="back" d="M80,170 Q100,200 120,170 Q100,190 80,170Z" fill="#333"/>
+     <path id="legs" d="M85,200 Q95,260 105,200 Q95,240 85,200Z" fill="#333"/>
+   </svg>
+   <div id="muscleInputs"></div>
+   <div class="mood">
+     <label>Mood: </label>
+     <span onclick="setMood('😎')">😎</span>
+     <span onclick="setMood('🙂')">🙂</span>
+     <span onclick="setMood('😐')">😐</span>
+     <span onclick="setMood('😩')">😩</span>
+     <span onclick="setMood('💀')">💀</span>
+   </div>
+   <p id="selectedMood"></p>
+   <div style="text-align:center">
+     <button onclick="finalizeDay()">Finalize Day</button>
+     <button onclick="openHistory(currentDay)">View History</button>
+     <button onclick="closePopup()">Close</button>
+   </div>
+ </div>
 </div>
 
+<!-- History popup -->
+<div id="historyPopup" class="popup hidden">
+ <div class="popup-content">
+   <h2 id="historyTitle"></h2>
+   <div id="historyDetails"></div>
+   <canvas id="historyChart" height="120"></canvas>
+   <div style="text-align:center"><button onclick="closeHistory()">Close</button></div>
+ </div>
+</div>
+
+<div id="statsSection">
+ <button onclick="toggleStats()">Show Muscle Stats</button>
+ <canvas id="muscleChart" height="150" class="hidden"></canvas>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-let bodyParts=JSON.parse(localStorage.getItem("bodyParts")||`{
-  "chest":{"reps":0,"growth":0},
-  "biceps":{"reps":0,"growth":0},
-  "shoulders":{"reps":0,"growth":0},
-  "abs":{"reps":0,"growth":0},
-  "legs":{"reps":0,"growth":0},
-  "back":{"reps":0,"growth":0}
-}`);
+const muscles=['chest','biceps','shoulders','abs','back','legs'];
+let days=JSON.parse(localStorage.getItem('ripfitDays')||'{}');
+let currentDay=null,selectedMood='😎',chart,historyChart;
 
-let selected=null;
+function renderCalendar(){
+ const cal=document.getElementById('calendar');
+ cal.innerHTML='';
+ for(let i=1;i<=90;i++){
+  const el=document.createElement('div');
+  el.className='day';
+  if(days[i]?.finalized)el.classList.add('finalized');
+  el.innerText=i;
+  el.onclick=()=>openDay(i);
+  cal.appendChild(el);
+ }
+ drawMainChart();
+}
+renderCalendar();
 
-// attach click events to all muscles
-document.querySelectorAll("path").forEach(p=>{
-  p.addEventListener("click",()=>openPopup(p.id));
-  updateColor(p.id);
-});
+function openDay(d){
+ currentDay=d;
+ document.getElementById('dayTitle').innerText=`Day ${d}`;
+ document.getElementById('dayPopup').classList.remove('hidden');
+ renderInputs(d);updateAvatar(d);
+ document.getElementById('selectedMood').innerText=days[d]?.mood||'😎';
+}
+function closePopup(){document.getElementById('dayPopup').classList.add('hidden');saveData();renderCalendar();}
 
-function openPopup(m){
-  selected=m;
-  document.getElementById("musclePopup").classList.remove("hidden");
-  document.getElementById("muscleName").innerText=m.charAt(0).toUpperCase()+m.slice(1);
-  document.getElementById("repInput").value=0;
-  document.getElementById("progressFill").style.width=bodyParts[m].growth+"%";
-  document.getElementById("muscleGrowth").innerText="Growth: "+Math.round(bodyParts[m].growth)+"%";
+function renderInputs(day){
+ const box=document.getElementById('muscleInputs');box.innerHTML='';
+ muscles.forEach(m=>{
+   const reps=days[day]?.muscles?.[m]||0;
+   box.innerHTML+=`<div>${m.toUpperCase()}: <input type='number' min='0' max='200' value='${reps}' onchange='updateReps("${m}",this.value)'> reps</div>`;
+ });
 }
-function closePopup(){document.getElementById("musclePopup").classList.add("hidden");}
+function updateReps(m,v){
+ days[currentDay]=days[currentDay]||{muscles:{},mood:'😎'};
+ days[currentDay].muscles[m]=parseInt(v)||0;
+ updateAvatar(currentDay);
+}
+function setMood(m){selectedMood=m;document.getElementById('selectedMood').innerText=m;}
+function updateAvatar(day){
+ muscles.forEach(m=>{
+   const val=days[day]?.muscles?.[m]||0;
+   const intensity=Math.min(255,Math.round(val*2));
+   document.getElementById(m).setAttribute('fill',`rgb(${intensity},50,50)`);
+ });
+}
+function finalizeDay(){
+ if(!currentDay)return;
+ const totals={},memory={};let total=0;
+ muscles.forEach(m=>{
+   const reps=parseInt(days[currentDay]?.muscles?.[m]||0);
+   totals[m]=reps;total+=reps;
+   const prev=days[currentDay-1]?.muscles?.[m]||0;
+   memory[m]=prev>0?Math.round(((reps-prev)/prev)*100):0;
+ });
+ days[currentDay]={muscles:totals,memory:memory,mood:selectedMood,total:total,finalized:true};
+ saveData();renderCalendar();drawMainChart();
+ alert(`Day ${currentDay} saved!`);
+}
+function saveData(){localStorage.setItem('ripfitDays',JSON.stringify(days));}
 
-function saveReps(){
-  const reps=parseInt(document.getElementById("repInput").value)||0;
-  bodyParts[selected].reps+=reps;
-  // growth formula: diminishing returns
-  const base=bodyParts[selected].reps;
-  const growth=100*(1-Math.exp(-base/500));
-  bodyParts[selected].growth=growth>100?100:growth;
-  document.getElementById("progressFill").style.width=growth+"%";
-  document.getElementById("muscleGrowth").innerText="Growth: "+Math.round(growth)+"%";
-  updateColor(selected);
-  saveData();
-  updateOverall();
+function drawMainChart(){
+ const ctx=document.getElementById('muscleChart').getContext('2d');
+ const labels=[],series={};muscles.forEach(m=>series[m]=[]);
+ for(let i=1;i<=90;i++){
+   if(days[i]?.finalized){
+     labels.push(i);
+     muscles.forEach(m=>series[m].push(days[i].muscles[m]||0));
+   }
+ }
+ if(chart)chart.destroy();
+ chart=new Chart(ctx,{type:'line',
+  data:{labels:labels,datasets:muscles.map((m,i)=>({
+   label:m,data:series[m],
+   borderColor:['#00eaff','#ff0080','#ffd700','#00ff88','#ff6600','#8888ff'][i],
+   fill:false}))},
+  options:{scales:{y:{beginAtZero:true}}}});
+}
+function toggleStats(){
+ const c=document.getElementById('muscleChart');
+ c.classList.toggle('hidden');
+ if(!c.classList.contains('hidden'))drawMainChart();
 }
 
-function updateColor(m){
-  const g=bodyParts[m].growth;
-  let color="#222";
-  if(g<30)color="rgba(0,234,255,0.3)";
-  else if(g<70)color="rgba(123,0,255,0.5)";
-  else color="rgba(255,215,0,0.7)";
-  document.getElementById(m).style.fill=color;
+/* Muscle History */
+function openHistory(day){
+ const d=days[day];
+ if(!d||!d.finalized){alert('Finalize the day first!');return;}
+ document.getElementById('historyPopup').classList.remove('hidden');
+ document.getElementById('historyTitle').innerText=`Day ${day} History`;
+ const box=document.getElementById('historyDetails');
+ let html='<table style="width:100%;text-align:left;border-collapse:collapse">';
+ html+='<tr><th>Muscle</th><th>Reps</th><th>Δ%</th></tr>';
+ muscles.forEach(m=>{
+   html+=`<tr><td>${m}</td><td>${d.muscles[m]}</td><td>${d.memory[m]}%</td></tr>`;
+ });
+ html+='</table>';
+ html+=`<p>Mood: ${d.mood}</p><p>Total: ${d.total}</p>`;
+ box.innerHTML=html;
+ drawHistoryChart(day);
 }
-function updateOverall(){
-  const vals=Object.values(bodyParts).map(v=>v.growth);
-  const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
-  document.getElementById("growthPercent").innerText=Math.round(avg);
+function closeHistory(){document.getElementById('historyPopup').classList.add('hidden');}
+function drawHistoryChart(day){
+ const ctx=document.getElementById('historyChart').getContext('2d');
+ const d=days[day];
+ const vals=muscles.map(m=>d.muscles[m]);
+ if(historyChart)historyChart.destroy();
+ historyChart=new Chart(ctx,{type:'bar',
+  data:{labels:muscles.map(m=>m.toUpperCase()),
+        datasets:[{label:'Reps',data:vals,backgroundColor:'#00eaff'}]},
+  options:{scales:{y:{beginAtZero:true}}}});
 }
-function saveData(){
-  localStorage.setItem("bodyParts",JSON.stringify(bodyParts));
-}
-updateOverall();
 </script>
 </body>
 </html>
+
