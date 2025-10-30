@@ -3,77 +3,84 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RipFit – FutureBody 2.5 (Energy & Growth)</title>
+<title>RipFit – FutureBody 2.6 Final</title>
 <style>
 body{margin:0;font-family:Poppins,Arial,sans-serif;background:#000;color:#fff;text-align:center;overflow-x:hidden}
 h1{color:#00eaff;text-shadow:0 0 10px #00eaff}
 .container{max-width:850px;margin:auto;padding:10px}
-svg{width:230px;margin:10px auto;display:block;cursor:pointer;transition:.3s}
-path{transition:all .3s ease-out;stroke:#000;stroke-width:1}
+svg{width:240px;margin:10px auto;display:block;transition:transform .3s ease;cursor:pointer}
+path{transition:all .4s ease-out;stroke:#000;stroke-width:1}
 button{background:linear-gradient(90deg,#ff0080,#7928ca);color:#fff;border:none;padding:6px 14px;border-radius:25px;font-weight:600;margin:4px;cursor:pointer}
-#stats{margin-top:15px;font-size:14px}
-.muscleStat{margin:2px 0}
+#energyBarContainer{width:80%;background:#222;border-radius:20px;margin:10px auto;height:20px;overflow:hidden;display:flex;align-items:center;justify-content:flex-start;position:relative}
+#energyBar{height:100%;width:60%;background:linear-gradient(90deg,#00ff88,#00eaff);transition:width .3s}
+#snack{position:absolute;right:-35px;cursor:pointer;font-size:22px}
+#popup{position:absolute;background:#111;border:1px solid #00eaff;border-radius:10px;padding:8px;display:none;z-index:10}
 .pulse{animation:pulse .4s}
 @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
-#energyBarContainer{width:80%;background:#222;border-radius:20px;margin:10px auto;height:20px;overflow:hidden}
-#energyBar{height:100%;width:50%;background:linear-gradient(90deg,#00ff88,#00eaff);transition:width .3s}
-canvas{margin-top:20px}
 </style>
 </head>
 <body>
 <div class="container">
-<h1>🏋️‍♂️ RipFit / FutureBody 2.5</h1>
+<h1>🏋️‍♂️ RipFit / FutureBody 2.6</h1>
 
-<div id="energyBarContainer"><div id="energyBar"></div></div>
-<p id="energyText">⚡ Energy: 50%</p>
-<p id="feedback">Let's grow!</p>
+<div id="energyBarContainer">
+ <div id="energyBar"></div>
+ <div id="snack" onclick="eatSnack()">🍫</div>
+</div>
+<p id="energyText">⚡ Energy: 60 %</p>
+<p id="feedback">Let's start strong!</p>
 
 <svg id="avatar" viewBox="0 0 200 400">
- <path id="chest" d="M80,80 Q100,60 120,80 Q100,100 80,80Z" fill="#333" />
- <path id="biceps" d="M60,120 Q70,140 60,160 Q50,140 60,120Z" fill="#333" />
- <path id="shoulders" d="M70,60 Q100,40 130,60 Q100,50 70,60Z" fill="#333" />
- <path id="abs" d="M90,120 Q100,160 110,120 Q100,100 90,120Z" fill="#333" />
- <path id="back" d="M80,170 Q100,200 120,170 Q100,190 80,170Z" fill="#333" />
- <path id="legs" d="M85,200 Q95,260 105,200 Q95,240 85,200Z" fill="#333" />
+ <path id="shoulders" d="M60,50 Q100,20 140,50 Q100,40 60,50Z" fill="#333"/>
+ <path id="chest" d="M70,80 Q100,60 130,80 Q100,100 70,80Z" fill="#333"/>
+ <path id="biceps" d="M50,100 Q60,140 50,170 Q40,140 50,100Z" fill="#333"/>
+ <path id="abs" d="M85,120 Q100,180 115,120 Q100,100 85,120Z" fill="#333"/>
+ <path id="back" d="M75,180 Q100,210 125,180 Q100,200 75,180Z" fill="#333"/>
+ <path id="legs" d="M80,210 Q90,300 110,210 Q100,280 80,210Z" fill="#333"/>
 </svg>
 
-<div id="controls">
- <p>Click muscle buttons below 👇</p>
- <div id="buttons"></div>
+<div>
+ <button onclick="startDay()">Start Day</button>
  <button onclick="finalizeDay()">Finalize Day</button>
- <button onclick="toggleChart()">Show Growth Chart</button>
 </div>
 
-<div id="stats"></div>
-<canvas id="growthChart" height="150" class="hidden"></canvas>
+<div id="popup"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const muscles=['chest','biceps','shoulders','abs','back','legs'];
+const muscles=['shoulders','chest','biceps','abs','back','legs'];
 let data=JSON.parse(localStorage.getItem('avatarMuscles')||'{}');
-if(Object.keys(data).length===0){muscles.forEach(m=>data[m]={size:10,lastTrained:0,history:[]});}
+if(Object.keys(data).length===0){muscles.forEach(m=>data[m]={size:10,lastTrained:0});}
 let day=JSON.parse(localStorage.getItem('currentDay')||'1');
-let energy=JSON.parse(localStorage.getItem('energyLevel')||'50');
-let chart;
+let energy=JSON.parse(localStorage.getItem('energyLevel')||'60');
 
-const buttons=document.getElementById('buttons');
 muscles.forEach(m=>{
- const div=document.createElement('div');
- div.innerHTML=`${m.toUpperCase()} 
-   <button onclick="train('${m}',5)">+ Rep</button>
-   <button onclick="train('${m}',-5)">- Rep</button>`;
- buttons.appendChild(div);
+ document.getElementById(m).addEventListener('click',e=>showPopup(e,m));
+});
+renderAvatar();updateEnergy();
+
+function showPopup(e,m){
+ const popup=document.getElementById('popup');
+ popup.style.left=e.pageX+'px';
+ popup.style.top=e.pageY+'px';
+ popup.innerHTML=`<b>${m.toUpperCase()}</b><br>
+ <button onclick="train('${m}',5)">+ Rep</button>
+ <button onclick="train('${m}',-5)">– Rep</button>`;
+ popup.style.display='block';
+}
+window.addEventListener('click',e=>{
+ if(!e.target.closest('#popup')&&!e.target.closest('path'))document.getElementById('popup').style.display='none';
 });
 
-renderAvatar();renderStats();updateEnergy();
-
 function train(m,val){
- data[m].size=Math.max(0,Math.min(200,data[m].size+val));
+ let growth=5;
+ if(energy<40)growth*=0.5;
+ else if(energy>80)growth*=1.25;
+ data[m].size=Math.max(0,Math.min(200,data[m].size+growth*val/5));
  data[m].lastTrained=day;
  pulse(m);
  energy=Math.min(100,energy+2);
- renderAvatar();renderStats();updateEnergy();saveData();
+ renderAvatar();updateEnergy();saveData();
 }
 
 function pulse(m){
@@ -83,64 +90,48 @@ function pulse(m){
 }
 
 function renderAvatar(){
+ let total=0;
  muscles.forEach(m=>{
-  const s=data[m].size;
-  const color=`rgb(${50+s},${30},${30})`;
-  document.getElementById(m).setAttribute('fill',color);
-  const scale=1+s/400;
-  document.getElementById(m).setAttribute('transform',`scale(${scale})`);
+   const s=data[m].size;total+=s;
+   const color=`rgb(${60+s},30,30)`;
+   const scale=1+s/400;
+   const part=document.getElementById(m);
+   part.setAttribute('fill',color);
+   part.setAttribute('transform',`scale(${scale})`);
  });
-}
-
-function renderStats(){
- const box=document.getElementById('stats');
- box.innerHTML=`<h3>Day ${day}</h3>`;
- muscles.forEach(m=>{
-   const s=data[m].size;
-   const xp=Math.round((s/200)*100);
-   box.innerHTML+=`<div class='muscleStat'>${m.toUpperCase()}: ${xp}%</div>`;
- });
-}
-
-function finalizeDay(){
- day++;
- muscles.forEach(m=>{
-   if(day - data[m].lastTrained > 2){
-     data[m].size*=0.95;
-   }
-   data[m].history.push(Math.round(data[m].size));
- });
- energy=Math.max(0,energy-10);
- updateEnergy();saveData();renderAvatar();renderStats();
- alert('Day finalized! Data saved.');
+ const overallScale=1+total/1200;
+ document.getElementById('avatar').style.transform=`scale(${overallScale})`;
 }
 
 function updateEnergy(){
  document.getElementById('energyBar').style.width=energy+'%';
  document.getElementById('energyText').innerText=`⚡ Energy: ${energy}%`;
- let feedback='💪 Keep going!';
- if(energy>70)feedback='🔥 ON FIRE!';
- else if(energy<30)feedback='😴 REST DAY?';
- document.getElementById('feedback').innerText=feedback;
+ let fb='💪 Steady energy!';
+ if(energy>80)fb='🔥 You’re unstoppable!';
+ else if(energy<40)fb='🥱 Low energy – grab a bar!';
+ document.getElementById('feedback').innerText=fb;
 }
 
-function toggleChart(){
- const c=document.getElementById('growthChart');
- c.classList.toggle('hidden');
- if(!c.classList.contains('hidden'))drawChart();
+function eatSnack(){
+ energy=Math.min(100,energy+10);
+ updateEnergy();saveData();
+ document.getElementById('feedback').innerText='🍫 Sweet recovery boost!';
 }
 
-function drawChart(){
- const ctx=document.getElementById('growthChart').getContext('2d');
- if(chart)chart.destroy();
- chart=new Chart(ctx,{type:'line',
-  data:{labels:Array.from({length:day-1},(_,i)=>i+1),
-   datasets:muscles.map((m,i)=>({
-     label:m,
-     data:data[m].history,
-     borderColor:['#00eaff','#ff0080','#ffd700','#00ff88','#ff6600','#8888ff'][i],
-     fill:false}))},
-  options:{scales:{y:{beginAtZero:true,max:200}}}});
+function startDay(){
+ day++;
+ energy=60;
+ saveData();updateEnergy();
+ alert('New day started! Energy set to 60%.');
+}
+
+function finalizeDay(){
+ muscles.forEach(m=>{
+   if(day-data[m].lastTrained>2)data[m].size*=0.95;
+ });
+ energy=Math.max(0,energy-10);
+ saveData();renderAvatar();updateEnergy();
+ alert('Day finalized and progress saved.');
 }
 
 function saveData(){
@@ -150,5 +141,7 @@ function saveData(){
 }
 </script>
 </body>
+</html>
+
 </html>
 
