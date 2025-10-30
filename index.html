@@ -3,67 +3,69 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RipFit – FutureBody 2.6 Final</title>
+<title>RipFit / FutureBody 2.9 Recovery Edition</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body{margin:0;font-family:Poppins,Arial,sans-serif;background:#000;color:#fff;text-align:center;overflow-x:hidden}
+body{margin:0;font-family:Poppins,sans-serif;background:radial-gradient(circle at center,#111 0%,#000 100%);color:#fff;text-align:center;overflow-x:hidden}
 h1{color:#00eaff;text-shadow:0 0 10px #00eaff}
-.container{max-width:850px;margin:auto;padding:10px}
-svg{width:240px;margin:10px auto;display:block;transition:transform .3s ease;cursor:pointer}
-path{transition:all .4s ease-out;stroke:#000;stroke-width:1}
-button{background:linear-gradient(90deg,#ff0080,#7928ca);color:#fff;border:none;padding:6px 14px;border-radius:25px;font-weight:600;margin:4px;cursor:pointer}
-#energyBarContainer{width:80%;background:#222;border-radius:20px;margin:10px auto;height:20px;overflow:hidden;display:flex;align-items:center;justify-content:flex-start;position:relative}
+.container{max-width:900px;margin:auto;padding:15px}
+#energyBarContainer{width:80%;background:#222;border-radius:20px;margin:10px auto;height:20px;position:relative;overflow:hidden}
 #energyBar{height:100%;width:60%;background:linear-gradient(90deg,#00ff88,#00eaff);transition:width .3s}
-#snack{position:absolute;right:-35px;cursor:pointer;font-size:22px}
-#popup{position:absolute;background:#111;border:1px solid #00eaff;border-radius:10px;padding:8px;display:none;z-index:10}
-.pulse{animation:pulse .4s}
-@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+#snack{position:absolute;right:-40px;top:-2px;cursor:pointer;font-size:24px}
+#avatar{width:280px;margin:20px auto;display:block;filter:drop-shadow(0 0 6px #333)}
+path{stroke:#111;stroke-width:1;cursor:pointer;transition:all .4s ease}
+button{background:linear-gradient(90deg,#ff0080,#7928ca);color:#fff;border:none;padding:6px 14px;border-radius:25px;font-weight:600;margin:4px;cursor:pointer}
+#popup{position:absolute;background:rgba(10,10,10,0.95);border:1px solid #00eaff;border-radius:10px;padding:10px;display:none;z-index:10}
+#chartContainer{width:90%;margin:20px auto;display:none}
+canvas{background:#111;border-radius:10px}
 </style>
 </head>
 <body>
 <div class="container">
-<h1>🏋️‍♂️ RipFit / FutureBody 2.6</h1>
+<h1>🏋️‍♂️ RipFit / FutureBody 2.9 Recovery Edition</h1>
 
 <div id="energyBarContainer">
- <div id="energyBar"></div>
- <div id="snack" onclick="eatSnack()">🍫</div>
+  <div id="energyBar"></div>
+  <div id="snack" onclick="eatSnack()">🍫</div>
 </div>
-<p id="energyText">⚡ Energy: 60 %</p>
+<p id="energyText">⚡ Energy: 60%</p>
 <p id="feedback">Let's start strong!</p>
 
 <svg id="avatar" viewBox="0 0 200 400">
- <path id="shoulders" d="M60,50 Q100,20 140,50 Q100,40 60,50Z" fill="#333"/>
- <path id="chest" d="M70,80 Q100,60 130,80 Q100,100 70,80Z" fill="#333"/>
- <path id="biceps" d="M50,100 Q60,140 50,170 Q40,140 50,100Z" fill="#333"/>
- <path id="abs" d="M85,120 Q100,180 115,120 Q100,100 85,120Z" fill="#333"/>
- <path id="back" d="M75,180 Q100,210 125,180 Q100,200 75,180Z" fill="#333"/>
- <path id="legs" d="M80,210 Q90,300 110,210 Q100,280 80,210Z" fill="#333"/>
+  <path id="shoulders" d="M70,40 Q100,10 130,40 Q100,35 70,40Z" fill="#224422"/>
+  <path id="chest" d="M70,70 Q100,50 130,70 Q100,95 70,70Z" fill="#224422"/>
+  <path id="biceps" d="M50,90 Q60,140 50,190 Q40,140 50,90Z" fill="#224422"/>
+  <path id="abs" d="M85,110 Q100,180 115,110 Q100,90 85,110Z" fill="#224422"/>
+  <path id="back" d="M75,190 Q100,220 125,190 Q100,200 75,190Z" fill="#224422"/>
+  <path id="legs" d="M80,220 Q90,320 110,220 Q100,310 80,220Z" fill="#224422"/>
 </svg>
 
 <div>
- <button onclick="startDay()">Start Day</button>
- <button onclick="finalizeDay()">Finalize Day</button>
+  <button onclick="startDay()">Start Day</button>
+  <button onclick="finalizeDay()">Finalize Day</button>
+  <button onclick="toggleChart()">📈 Progress</button>
 </div>
 
 <div id="popup"></div>
+<div id="chartContainer"><canvas id="growthChart" height="200"></canvas></div>
 </div>
 
 <script>
 const muscles=['shoulders','chest','biceps','abs','back','legs'];
 let data=JSON.parse(localStorage.getItem('avatarMuscles')||'{}');
-if(Object.keys(data).length===0){muscles.forEach(m=>data[m]={size:10,lastTrained:0});}
+if(Object.keys(data).length===0){muscles.forEach(m=>data[m]={size:10,lastTrained:0,reps:0,history:[]});}
 let day=JSON.parse(localStorage.getItem('currentDay')||'1');
 let energy=JSON.parse(localStorage.getItem('energyLevel')||'60');
+let chart;
 
-muscles.forEach(m=>{
- document.getElementById(m).addEventListener('click',e=>showPopup(e,m));
-});
+muscles.forEach(m=>document.getElementById(m).addEventListener('click',e=>showPopup(e,m)));
 renderAvatar();updateEnergy();
 
 function showPopup(e,m){
  const popup=document.getElementById('popup');
  popup.style.left=e.pageX+'px';
  popup.style.top=e.pageY+'px';
- popup.innerHTML=`<b>${m.toUpperCase()}</b><br>
+ popup.innerHTML=`<b>${m.toUpperCase()}</b><br>Reps: ${data[m].reps}<br>
  <button onclick="train('${m}',5)">+ Rep</button>
  <button onclick="train('${m}',-5)">– Rep</button>`;
  popup.style.display='block';
@@ -74,9 +76,9 @@ window.addEventListener('click',e=>{
 
 function train(m,val){
  let growth=5;
- if(energy<40)growth*=0.5;
- else if(energy>80)growth*=1.25;
- data[m].size=Math.max(0,Math.min(200,data[m].size+growth*val/5));
+ if(energy<40)growth*=0.5;else if(energy>80)growth*=1.25;
+ data[m].size=Math.max(0,Math.min(200,data[m].size+growth));
+ data[m].reps=Math.max(0,data[m].reps+val);
  data[m].lastTrained=day;
  pulse(m);
  energy=Math.min(100,energy+2);
@@ -85,18 +87,20 @@ function train(m,val){
 
 function pulse(m){
  const el=document.getElementById(m);
- el.classList.add('pulse');
- setTimeout(()=>el.classList.remove('pulse'),400);
+ el.style.filter='drop-shadow(0 0 10px #ff0040)';
+ setTimeout(()=>el.style.filter='',400);
 }
 
 function renderAvatar(){
  let total=0;
  muscles.forEach(m=>{
-   const s=data[m].size;total+=s;
-   const color=`rgb(${60+s},30,30)`;
-   const scale=1+s/400;
+   const s=data[m].size; total+=s;
+   const fatigue=Math.min(255,60+s*0.8);
+   const recovery=Math.max(30,255-s);
+   const color=`rgb(${fatigue},${recovery},80)`;
    const part=document.getElementById(m);
    part.setAttribute('fill',color);
+   const scale=1+s/400;
    part.setAttribute('transform',`scale(${scale})`);
  });
  const overallScale=1+total/1200;
@@ -114,8 +118,13 @@ function updateEnergy(){
 
 function eatSnack(){
  energy=Math.min(100,energy+10);
- updateEnergy();saveData();
  document.getElementById('feedback').innerText='🍫 Sweet recovery boost!';
+ // palautetaan värit hitaasti kohti vihreää
+ muscles.forEach(m=>{
+   let currentSize=data[m].size;
+   data[m].size=Math.max(10,currentSize-10);
+ });
+ renderAvatar();updateEnergy();saveData();
 }
 
 function startDay(){
@@ -128,10 +137,36 @@ function startDay(){
 function finalizeDay(){
  muscles.forEach(m=>{
    if(day-data[m].lastTrained>2)data[m].size*=0.95;
+   data[m].history.push(Math.round(data[m].size));
+   if(data[m].history.length>90)data[m].history.shift();
  });
  energy=Math.max(0,energy-10);
  saveData();renderAvatar();updateEnergy();
  alert('Day finalized and progress saved.');
+}
+
+function toggleChart(){
+ const c=document.getElementById('chartContainer');
+ c.style.display=c.style.display==='none'?'block':'none';
+ if(c.style.display==='block')drawChart();
+}
+
+function drawChart(){
+ const ctx=document.getElementById('growthChart').getContext('2d');
+ if(chart)chart.destroy();
+ chart=new Chart(ctx,{
+  type:'line',
+  data:{
+   labels:Array.from({length:Math.max(...muscles.map(m=>data[m].history.length))},(_,i)=>i+1),
+   datasets:muscles.map((m,i)=>({
+    label:m,
+    data:data[m].history,
+    borderColor:['#00eaff','#ff0080','#ffd700','#00ff88','#ff6600','#8888ff'][i],
+    fill:false
+   }))
+  },
+  options:{scales:{y:{beginAtZero:true,max:200}},plugins:{legend:{labels:{color:'#fff'}}}}
+ });
 }
 
 function saveData(){
@@ -141,7 +176,5 @@ function saveData(){
 }
 </script>
 </body>
-</html>
-
 </html>
 
