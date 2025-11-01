@@ -1,86 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>RipFit / FutureBody 3.0 Anatomical Edition</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RipFit / FutureBody 3.5 Animated Edition</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/lottie-web"></script>
 <style>
 body {
+  font-family: 'Poppins', sans-serif;
   margin: 0;
-  font-family: Poppins, sans-serif;
-  background: radial-gradient(circle at center, #0a0a0a 0%, #000 100%);
-  color: #fff;
+  background: radial-gradient(circle at center, #0a0a0a, #000);
+  color: white;
   text-align: center;
   overflow-x: hidden;
 }
 h1 {
   color: #00eaff;
-  text-shadow: 0 0 10px #00eaff;
-}
-.container {
-  max-width: 900px;
-  margin: auto;
-  padding: 15px;
+  text-shadow: 0 0 12px #00eaff;
 }
 #energyBarContainer {
   width: 80%;
   background: #222;
   border-radius: 20px;
-  margin: 10px auto;
   height: 20px;
+  margin: 15px auto;
   position: relative;
-  overflow: hidden;
 }
 #energyBar {
   height: 100%;
-  width: 60%;
   background: linear-gradient(90deg, #00ff88, #00eaff);
-  transition: width 0.3s;
+  width: 80%;
+  transition: width 0.3s ease;
 }
 #snack {
   position: absolute;
   right: -40px;
   top: -2px;
-  cursor: pointer;
   font-size: 24px;
-}
-#avatarContainer {
-  position: relative;
-  display: inline-block;
-}
-#avatar {
-  width: 300px;
-  display: block;
-  margin: 20px auto;
-  border-radius: 10px;
-}
-.area {
-  position: absolute;
   cursor: pointer;
-  border-radius: 50%;
-  opacity: 0.15;
-  background-color: green;
-  transition: all 0.3s ease;
 }
 button {
   background: linear-gradient(90deg, #ff0080, #7928ca);
-  color: #fff;
+  color: white;
   border: none;
-  padding: 6px 14px;
   border-radius: 25px;
-  font-weight: 600;
-  margin: 4px;
+  padding: 8px 16px;
+  margin: 5px;
   cursor: pointer;
+  font-weight: 600;
+}
+#avatar {
+  width: 300px;
+  margin: 20px auto;
 }
 #popup {
   position: absolute;
-  background: rgba(10, 10, 10, 0.95);
+  background: rgba(0,0,0,0.85);
   border: 1px solid #00eaff;
   border-radius: 10px;
   padding: 10px;
   display: none;
-  z-index: 10;
+  z-index: 20;
 }
 #chartContainer {
   width: 90%;
@@ -94,52 +75,51 @@ canvas {
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>🏋️‍♂️ RipFit / FutureBody 3.0</h1>
+<h1>🏋️‍♂️ RipFit / FutureBody 3.5</h1>
 
-  <div id="energyBarContainer">
-    <div id="energyBar"></div>
-    <div id="snack" onclick="eatSnack()">🍫</div>
-  </div>
-  <p id="energyText">⚡ Energy: 60%</p>
-  <p id="feedback">Let's start strong!</p>
-
-  <div id="avatarContainer">
-    <img id="avatar" src="images/body.png" alt="Anatomical body" />
-
-    <!-- Muscle Click Areas -->
-    <div class="area" id="chest" style="top:120px;left:125px;width:50px;height:40px;"></div>
-    <div class="area" id="biceps" style="top:140px;left:80px;width:40px;height:60px;"></div>
-    <div class="area" id="abs" style="top:180px;left:130px;width:40px;height:60px;"></div>
-    <div class="area" id="shoulders" style="top:100px;left:110px;width:70px;height:40px;"></div>
-    <div class="area" id="legs" style="top:250px;left:125px;width:60px;height:90px;"></div>
-  </div>
-
-  <div>
-    <button onclick="startDay()">Start Day</button>
-    <button onclick="finalizeDay()">Finalize Day</button>
-    <button onclick="toggleChart()">📈 Progress</button>
-  </div>
-
-  <div id="popup"></div>
-  <div id="chartContainer"><canvas id="growthChart" height="200"></canvas></div>
+<div id="energyBarContainer">
+  <div id="energyBar"></div>
+  <div id="snack" onclick="eatSnack()">🍫</div>
 </div>
+<p id="energyText">⚡ Energy: 80%</p>
+<p id="feedback">Let’s make today count!</p>
+
+<div id="avatar"></div>
+
+<div>
+  <button onclick="startDay()">Start Day</button>
+  <button onclick="finalizeDay()">Finalize Day</button>
+  <button onclick="toggleChart()">📈 Progress</button>
+</div>
+
+<div id="popup"></div>
+<div id="chartContainer"><canvas id="progressChart" height="180"></canvas></div>
 
 <script>
 const muscles = ["chest", "biceps", "abs", "shoulders", "legs"];
-let data = JSON.parse(localStorage.getItem("anatomicalMuscles") || "{}");
-if (Object.keys(data).length === 0) {
-  muscles.forEach(m => data[m] = { size: 10, lastTrained: 0, reps: 0, history: [] });
-}
+let data = JSON.parse(localStorage.getItem("lottieMuscles") || "{}");
+if (Object.keys(data).length === 0) muscles.forEach(m => data[m] = { reps: 0, size: 10, history: [] });
+let energy = JSON.parse(localStorage.getItem("energyLevel") || "80");
 let day = JSON.parse(localStorage.getItem("currentDay") || "1");
-let energy = JSON.parse(localStorage.getItem("energyLevel") || "60");
 let chart;
 
-document.querySelectorAll(".area").forEach(area => {
-  area.addEventListener("click", e => showPopup(e, area.id));
+// Load Lottie animation
+let animation = lottie.loadAnimation({
+  container: document.getElementById('avatar'),
+  renderer: 'svg',
+  loop: true,
+  autoplay: true,
+  path: 'animations/human.json'
 });
-renderAvatar();
-updateEnergy();
+
+function updateEnergy() {
+  document.getElementById("energyBar").style.width = energy + "%";
+  document.getElementById("energyText").innerText = `⚡ Energy: ${energy}%`;
+  let fb = "💪 Feeling strong!";
+  if (energy < 40) fb = "🥱 Low energy! Eat something.";
+  else if (energy > 90) fb = "🔥 You’re unstoppable!";
+  document.getElementById("feedback").innerText = fb;
+}
 
 function showPopup(e, m) {
   const popup = document.getElementById("popup");
@@ -150,81 +130,51 @@ function showPopup(e, m) {
   <button onclick="train('${m}',-5)">– Rep</button>`;
   popup.style.display = "block";
 }
-
 window.addEventListener("click", e => {
-  if (!e.target.closest("#popup") && !e.target.closest(".area")) document.getElementById("popup").style.display = "none";
+  if (!e.target.closest("#popup")) document.getElementById("popup").style.display = "none";
 });
 
 function train(m, val) {
-  let growth = 5;
-  if (energy < 40) growth *= 0.5;
-  else if (energy > 80) growth *= 1.25;
-  data[m].size = Math.max(0, Math.min(200, data[m].size + growth));
+  let factor = 1;
+  if (energy < 40) factor = 0.5;
+  else if (energy > 80) factor = 1.2;
   data[m].reps = Math.max(0, data[m].reps + val);
-  data[m].lastTrained = day;
+  data[m].size = Math.min(200, data[m].size + 5 * factor);
+  energy = Math.max(0, energy - 3);
   pulse(m);
-  energy = Math.min(100, energy + 2);
-  renderAvatar();
   updateEnergy();
   saveData();
 }
 
 function pulse(m) {
-  const el = document.getElementById(m);
-  el.style.opacity = "0.6";
-  setTimeout(() => (el.style.opacity = "0.15"), 400);
-}
-
-function renderAvatar() {
-  muscles.forEach(m => {
-    const s = data[m].size;
-    let color = "green";
-    if (s > 80) color = "red";
-    else if (s > 40) color = "yellow";
-    document.getElementById(m).style.backgroundColor = color;
-  });
-}
-
-function updateEnergy() {
-  document.getElementById("energyBar").style.width = energy + "%";
-  document.getElementById("energyText").innerText = `⚡ Energy: ${energy}%`;
-  let fb = "💪 Steady energy!";
-  if (energy > 80) fb = "🔥 You’re unstoppable!";
-  else if (energy < 40) fb = "🥱 Low energy – grab a bar!";
-  document.getElementById("feedback").innerText = fb;
+  document.getElementById("feedback").innerText = `${m.toUpperCase()} engaged!`;
 }
 
 function eatSnack() {
-  energy = Math.min(100, energy + 10);
-  document.getElementById("feedback").innerText = "🍫 Sweet recovery boost!";
-  // palautetaan värit vihreämmäksi
-  muscles.forEach(m => {
-    const el = document.getElementById(m);
-    el.style.backgroundColor = "green";
-  });
+  energy = Math.min(100, energy + 15);
+  document.getElementById("feedback").innerText = "🍫 Protein boost!";
   updateEnergy();
   saveData();
 }
 
 function startDay() {
+  energy = 80;
   day++;
-  energy = 60;
-  saveData();
+  document.getElementById("feedback").innerText = "💪 Day started fresh!";
   updateEnergy();
-  alert("New day started! Energy set to 60%.");
+  saveData();
 }
 
 function finalizeDay() {
   muscles.forEach(m => {
-    if (day - data[m].lastTrained > 2) data[m].size *= 0.95;
-    data[m].history.push(Math.round(data[m].size));
+    data[m].history.push(data[m].size);
     if (data[m].history.length > 90) data[m].history.shift();
+    data[m].size *= 0.97;
   });
   energy = Math.max(0, energy - 10);
-  saveData();
-  renderAvatar();
   updateEnergy();
-  alert("Day finalized and progress saved.");
+  saveData();
+  alert("Day finalized. Progress saved.");
 }
 
 function toggleChart() {
@@ -234,28 +184,33 @@ function toggleChart() {
 }
 
 function drawChart() {
-  const ctx = document.getElementById("growthChart").getContext("2d");
+  const ctx = document.getElementById("progressChart").getContext("2d");
   if (chart) chart.destroy();
   chart = new Chart(ctx, {
     type: "line",
     data: {
-      labels: Array.from({ length: Math.max(...muscles.map(m => data[m].history.length)) }, (_, i) => i + 1),
-      datasets: muscles.map((m, i) => ({
+      labels: Array.from({length: Math.max(...muscles.map(m => data[m].history.length))}, (_,i)=>i+1),
+      datasets: muscles.map((m,i)=>({
         label: m,
         data: data[m].history,
-        borderColor: ["#00eaff", "#ff0080", "#ffd700", "#00ff88", "#ff6600"][i],
+        borderColor: ["#00eaff","#ff0080","#ffd700","#00ff88","#ff6600"][i],
         fill: false
       }))
     },
-    options: { scales: { y: { beginAtZero: true, max: 200 } }, plugins: { legend: { labels: { color: "#fff" } } } }
+    options: {
+      scales: { y: { beginAtZero: true, max: 200 } },
+      plugins: { legend: { labels: { color: "#fff" } } }
+    }
   });
 }
 
 function saveData() {
-  localStorage.setItem("anatomicalMuscles", JSON.stringify(data));
-  localStorage.setItem("currentDay", JSON.stringify(day));
+  localStorage.setItem("lottieMuscles", JSON.stringify(data));
   localStorage.setItem("energyLevel", JSON.stringify(energy));
+  localStorage.setItem("currentDay", JSON.stringify(day));
 }
+updateEnergy();
 </script>
 </body>
 </html>
+
